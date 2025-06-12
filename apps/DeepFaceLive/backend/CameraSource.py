@@ -83,6 +83,7 @@ class CameraSourceWorker(BackendWorker):
         self.pending_bcd = None
         self.vcap = None
         self.last_timestamp = 0
+        self._read_fail_count = 0
         lib_os.set_timer_resolution(4)
 
         state, cs = self.get_state(), self.get_control_sheet()
@@ -131,6 +132,7 @@ class CameraSourceWorker(BackendWorker):
             vcap = cv2.VideoCapture(state.device_idx, cv_api)
             if vcap.isOpened():
                 self.vcap = vcap
+                cs.error.set_error(None)
                 w, h = _ResolutionType_wh[state.resolution]
 
                 vcap.set(cv2.CAP_PROP_FRAME_WIDTH, w)
@@ -154,6 +156,7 @@ class CameraSourceWorker(BackendWorker):
                 cs.load_settings.enable()
                 cs.save_settings.enable()
             else:
+                cs.error.set_error('Failed to open camera')
                 cs.device_idx.unselect()
 
     def on_cs_driver_selected(self, idx, driver):
@@ -237,6 +240,8 @@ class CameraSourceWorker(BackendWorker):
             self.start_profile_timing()
             ret, img = self.vcap.read()
             if ret:
+                self._read_fail_count = 0
+                cs.error.set_error(None)
                 timestamp = datetime.now().timestamp()
                 fps = state.fps
                 if fps == 0 or ((timestamp - self.last_timestamp) > 1.0 / fps):
@@ -277,6 +282,11 @@ class CameraSourceWorker(BackendWorker):
                     bcd.set_image(frame_name, img)
                     self.stop_profile_timing()
                     self.pending_bcd = bcd
+            else:
+                self._read_fail_count += 1
+                self.stop_profile_timing()
+                if self._read_fail_count >= 30:
+                    cs.error.set_error('Camera read failed')
 
         if self.pending_bcd is not None:
             if self.bc_out.is_full_read(1):
@@ -330,6 +340,7 @@ class Sheet:
             super().__init__()
             self.device_idx = lib_csw.DynamicSingleSwitch.Client()
             self.driver = lib_csw.DynamicSingleSwitch.Client()
+            self.error = lib_csw.Error.Client()
             self.resolution = lib_csw.DynamicSingleSwitch.Client()
             self.fps = lib_csw.Number.Client()
             self.rotation = lib_csw.DynamicSingleSwitch.Client()
@@ -343,6 +354,7 @@ class Sheet:
             super().__init__()
             self.device_idx = lib_csw.DynamicSingleSwitch.Host()
             self.driver = lib_csw.DynamicSingleSwitch.Host()
+            self.error = lib_csw.Error.Host()
             self.resolution = lib_csw.DynamicSingleSwitch.Host()
             self.fps = lib_csw.Number.Host()
             self.rotation = lib_csw.DynamicSingleSwitch.Host()

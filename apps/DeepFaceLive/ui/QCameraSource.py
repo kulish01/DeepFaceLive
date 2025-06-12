@@ -7,6 +7,7 @@ from .widgets.QCheckBoxCSWFlag import QCheckBoxCSWFlag
 from .widgets.QComboBoxCSWDynamicSingleSwitch import \
     QComboBoxCSWDynamicSingleSwitch
 from .widgets.QLabelPopupInfo import QLabelPopupInfo
+from .widgets.QErrorCSWError import QErrorCSWError
 from .widgets.QSpinBoxCSWNumber import QSpinBoxCSWNumber
 from .widgets.QXPushButtonCSWSignal import QXPushButtonCSWSignal
 
@@ -20,6 +21,7 @@ class QCameraSource(QBackendPanel):
         
         q_device_idx_label = QLabelPopupInfo(label=L('@QCameraSource.device_index') )
         q_device_idx       = QComboBoxCSWDynamicSingleSwitch(cs.device_idx, reflect_state_widgets=[q_device_idx_label])
+        q_error            = QErrorCSWError(cs.error)
 
         q_resolution_label = QLabelPopupInfo(label=L('@QCameraSource.resolution'), popup_info_text=L('@QCameraSource.help.resolution') )
         q_resolution       = QComboBoxCSWDynamicSingleSwitch(cs.resolution, reflect_state_widgets=[q_resolution_label])
@@ -46,6 +48,8 @@ class QCameraSource(QBackendPanel):
         row += 1
         grid_l.addWidget(q_device_idx_label, row, 0, alignment=qtx.AlignRight | qtx.AlignVCenter  )
         grid_l.addWidget(q_device_idx, row, 1, alignment=qtx.AlignLeft )
+        row += 1
+        grid_l.addWidget(q_error, row, 0, 1, 2)
         row += 1
         grid_l.addWidget(q_resolution_label, row, 0, alignment=qtx.AlignRight | qtx.AlignVCenter  )
         grid_l.addWidget(q_resolution, row, 1, alignment=qtx.AlignLeft )
